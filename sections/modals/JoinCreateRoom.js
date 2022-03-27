@@ -24,6 +24,7 @@ function JoinCreateRoom({ opened, setOpened }) {
         playerOne: user.email,
         head: user.email,
       });
+      router.push(`/room/${room}`);
     } else {
       createRoom();
     }

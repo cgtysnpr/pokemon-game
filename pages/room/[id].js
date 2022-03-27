@@ -27,6 +27,7 @@ export async function getServerSideProps(context) {
     }, // will be passed to the page component as props
   };
 }
+
 const useStyles = createStyles((theme) => ({
   backGround: {
     backgroundSize: "cover",
@@ -51,6 +52,29 @@ const useStyles = createStyles((theme) => ({
   }
 }));
 function Room({ roomName, roomData }) {
+  if (typeof window !== "undefined") {
+    window.addEventListener ('beforeunload', async function  (e) {
+      e.preventDefault();
+      const roomRef = db.collection('rooms').doc(roomData.roomName);
+      if(newRoomData.playerOne == user.email && newRoomData.playerTwo){
+          const res = await roomRef.update({
+            head: newRoomData.playerTwo,
+            playerOne: newRoomData.playerTwo,
+            playerTwo: ''
+        });
+      }
+      else if(newRoomData.playerTwo == user.email){
+        const res = await roomRef.update({
+          head: newRoomData.playerOne,
+          playerTwo: ''
+      });
+      }
+    
+
+  
+  });
+}
+
   const router = useRouter();
   const [newRoomData, setNewRoomData] = useState([]);
   const { classes } = useStyles();
@@ -59,9 +83,16 @@ function Room({ roomName, roomData }) {
   );
   useEffect(() => {
     if (room) {
+      
       setNewRoomData(room.docs?.[0]?.data());
+      console.log(newRoomData)
     }
   }, [room]);
+  useEffect(() => {
+
+      console.log(newRoomData)
+    
+  }, [newRoomData]);
   const [user] = useAuthState(auth);
   useEffect(() => {
     if (user) {
@@ -77,9 +108,9 @@ function Room({ roomName, roomData }) {
       } else {
         router.push(`/`);
       }
+
     }
   }, [user]);
-
   return (
     <>
       <motion.div
