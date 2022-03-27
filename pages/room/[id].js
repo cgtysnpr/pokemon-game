@@ -30,7 +30,7 @@ export async function getServerSideProps(context) {
 const useStyles = createStyles((theme) => ({
   backGround: {
     backgroundSize: "cover",
-    backgroundImage: "url(http://localhost:3000/images/room-background.jpg)",
+    backgroundImage: "url(https://pokemon-game-smoky.vercel.app/images/room-background.jpg)",
     padding: theme.spacing.xl * 3,
     height: "100vh",
     width: "100vw",
