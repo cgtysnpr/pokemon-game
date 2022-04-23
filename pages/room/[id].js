@@ -13,6 +13,8 @@ import { db, auth } from "../../firebase";
 import { useCollection } from "react-firebase-hooks/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useRouter } from "next/router";
+import PokemonChoose from "../../sections/modals/PokemonChoose";
+
 export async function getServerSideProps(context) {
   const roomsRef = db.collection("rooms");
   const roomName = context.query.id;
@@ -31,7 +33,8 @@ export async function getServerSideProps(context) {
 const useStyles = createStyles((theme) => ({
   backGround: {
     backgroundSize: "cover",
-    backgroundImage: "url(https://pokemon-game-smoky.vercel.app/images/room-background.jpg)",
+    backgroundImage:
+      "url(https://pokemon-game-smoky.vercel.app/images/room-background.jpg)",
     padding: theme.spacing.xl * 3,
     height: "100vh",
     width: "100vw",
@@ -49,50 +52,41 @@ const useStyles = createStyles((theme) => ({
       borderBottom: "4px solid #fff",
       borderRight: "none",
     },
-  }
+  },
 }));
 function Room({ roomName, roomData }) {
+  const [opened, setOpened] = useState(false);
+  const [newRoomData, setNewRoomData] = useState([]);
   if (typeof window !== "undefined") {
-    window.addEventListener ('beforeunload', async function  (e) {
+    window.addEventListener("beforeunload", async function (e) {
       e.preventDefault();
-      const roomRef = db.collection('rooms').doc(roomData.roomName);
-      if(newRoomData.playerOne == user.email && newRoomData.playerTwo){
-          const res = await roomRef.update({
-            head: newRoomData.playerTwo,
-            playerOne: newRoomData.playerTwo,
-            playerTwo: ''
+      const roomRef = db.collection("rooms").doc(roomData.roomName);
+      if (newRoomData.playerOne == user.email && newRoomData.playerTwo) {
+        const res = await roomRef.update({
+          head: newRoomData.playerTwo,
+          playerOne: newRoomData.playerTwo,
+          playerTwo: "",
         });
-      }
-      else if(newRoomData.playerTwo == user.email){
+      } else if (newRoomData.playerTwo == user.email) {
         const res = await roomRef.update({
           head: newRoomData.playerOne,
-          playerTwo: ''
-      });
+          playerTwo: "",
+        });
       }
-    
-
-  
-  });
-}
+    });
+  }
 
   const router = useRouter();
-  const [newRoomData, setNewRoomData] = useState([]);
+
   const { classes } = useStyles();
   const [room] = useCollection(
     db.collection("rooms").where("roomName", "==", roomName)
   );
   useEffect(() => {
     if (room) {
-      
       setNewRoomData(room.docs?.[0]?.data());
-      console.log(newRoomData)
     }
   }, [room]);
-  useEffect(() => {
-
-      console.log(newRoomData)
-    
-  }, [newRoomData]);
   const [user] = useAuthState(auth);
   useEffect(() => {
     if (user) {
@@ -100,7 +94,6 @@ function Room({ roomName, roomData }) {
         roomData.playerOne == user.email ||
         (roomData.playerTwo == user.email && roomData.playerTwo)
       ) {
-        console.log("test");
       } else if (!roomData.playerTwo) {
         db.collection("rooms").doc(roomData.roomName).update({
           playerTwo: user.email,
@@ -108,9 +101,36 @@ function Room({ roomName, roomData }) {
       } else {
         router.push(`/`);
       }
-
     }
   }, [user]);
+  const gameStarted = async () => {
+    const roomRef = db.collection("rooms").doc(roomData.roomName);
+    const res = await roomRef.update({
+      section: 1,
+      time: 20,
+      started: true,
+    });
+  };
+  async function delay(ms) {
+    // return await for better async stack trace support in case of errors.
+    return await new Promise((resolve) => setTimeout(resolve, ms));
+  }
+  useEffect(async () => {
+    if (newRoomData && newRoomData.time > 0 && newRoomData.section == 1) {
+      if (!opened) {
+        setOpened(true);
+      }
+      if (newRoomData.time > 0 && newRoomData.head == user.email) {
+        await delay(1000);
+        const roomRef = db.collection("rooms").doc(roomData.roomName);
+        const res = await roomRef.update({
+          time: newRoomData.time - 1,
+        });
+
+        await delay(1000);
+      }
+    }
+  }, [newRoomData]);
   return (
     <>
       <motion.div
@@ -146,10 +166,7 @@ function Room({ roomName, roomData }) {
               </Grid.Col>
             </Grid>
             <Grid>
-              <Grid.Col
-                className={classes.playerSpaceOne}
-                md={12} lg={6}
-              >
+              <Grid.Col className={classes.playerSpaceOne} md={12} lg={6}>
                 test
               </Grid.Col>
               <Grid.Col
@@ -159,7 +176,8 @@ function Room({ roomName, roomData }) {
                   alignContent: "center",
                   alignItems: "center",
                 }}
-                md={12} lg={6}
+                md={12}
+                lg={6}
               >
                 test test
               </Grid.Col>
@@ -174,13 +192,25 @@ function Room({ roomName, roomData }) {
                     alignItems: "center",
                   }}
                 >
-                  <Button variant="filled" color="dark" size="xl">
+                  <Button
+                    onClick={() => gameStarted()}
+                    variant="filled"
+                    color="dark"
+                    size="xl"
+                  >
                     START
                   </Button>
                 </Grid.Col>
               </Grid>
             ) : null}
           </>
+        ) : null}
+        {opened ? (
+          <PokemonChoose
+            time={newRoomData.time}
+            opened={opened}
+            setOpened={setOpened}
+          />
         ) : null}
       </motion.div>
     </>
