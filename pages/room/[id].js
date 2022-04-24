@@ -8,13 +8,14 @@ import {
   Grid,
   Box,
 } from "@mantine/core";
+import { Image } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { db, auth } from "../../firebase";
 import { useCollection } from "react-firebase-hooks/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useRouter } from "next/router";
 import PokemonChoose from "../../sections/modals/PokemonChoose";
-
+import PokemonCards from "../../sections/game-screen/PokemonCards";
 export async function getServerSideProps(context) {
   const roomsRef = db.collection("rooms");
   const roomName = context.query.id;
@@ -47,7 +48,6 @@ const useStyles = createStyles((theme) => ({
     flexDirection: "column",
     alignContent: "center",
     alignItems: "center",
-    borderRight: "4px solid #fff",
     [theme.fn.smallerThan("md")]: {
       borderBottom: "4px solid #fff",
       borderRight: "none",
@@ -55,6 +55,7 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 function Room({ roomName, roomData }) {
+  const [choosedPokemons, setChoosedPokemons] = useState([]);
   const [opened, setOpened] = useState(false);
   const [newRoomData, setNewRoomData] = useState([]);
   if (typeof window !== "undefined") {
@@ -107,7 +108,7 @@ function Room({ roomName, roomData }) {
     const roomRef = db.collection("rooms").doc(roomData.roomName);
     const res = await roomRef.update({
       section: 1,
-      time: 20,
+      time: 15,
       started: true,
     });
   };
@@ -126,9 +127,39 @@ function Room({ roomName, roomData }) {
         const res = await roomRef.update({
           time: newRoomData.time - 1,
         });
-
-        await delay(1000);
       }
+    }
+    if (newRoomData && newRoomData.time === 0 && newRoomData.section == 1) {
+      const roomRef = db.collection("rooms").doc(roomData.roomName);
+      if (newRoomData.playerOne === user.email) {
+        const res = await roomRef.update({
+          playerOnePokemons: choosedPokemons,
+          time: 20,
+          section: 2,
+          round: 1,
+        });
+        setOpened(false);
+      } else {
+        const res = await roomRef.update({
+          playerTwoPokemons: choosedPokemons,
+          time: 20,
+          section: 2,
+          round: 1,
+        });
+        setOpened(false);
+      }
+    }
+    if (
+      newRoomData &&
+      newRoomData.section == 2 &&
+      newRoomData.time > 0 &&
+      newRoomData.head === user.email
+    ) {
+      await delay(1000);
+      const roomRef = db.collection("rooms").doc(roomData.roomName);
+      const res = await roomRef.update({
+        time: newRoomData.time - 1,
+      });
     }
   }, [newRoomData]);
   return (
@@ -149,14 +180,8 @@ function Room({ roomName, roomData }) {
                     padding: theme.spacing.xl,
                     borderRadius: theme.radius.md,
                     cursor: "pointer",
-                    color: "#fff",
-                    "&:hover": {
-                      backgroundColor:
-                        theme.colorScheme === "dark"
-                          ? theme.colors.dark[5]
-                          : theme.colors.gray[1],
-                      color: "#000",
-                    },
+                    color: "#181818",
+                    backgroundColor: theme.colors.gray[1],
                   })}
                 >
                   <Text>Players</Text>
@@ -165,9 +190,57 @@ function Room({ roomName, roomData }) {
                 </Box>
               </Grid.Col>
             </Grid>
+            {newRoomData.section > 1 ? (
+              <>
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: "10%",
+                    left: "50%",
+                    backgroundColor: "#fff",
+                    padding: 15,
+                    borderRadius: "10px",
+                  }}
+                >
+                  <Text size="xl" weight={700}>
+                    {newRoomData.time}
+                  </Text>
+                </Box>
+                <Image
+                  width={200}
+                  sx={{ position: "absolute", left: "45%", top: "28%" }}
+                  src="/images/vs-png.png"
+                  alt="vs"
+                />
+              </>
+            ) : null}
+
             <Grid>
               <Grid.Col className={classes.playerSpaceOne} md={12} lg={6}>
-                test
+                {newRoomData.playerOne === user.email &&
+                newRoomData.playerOnePokemons ? (
+                  <Grid>
+                    {newRoomData.playerOnePokemons.map((data, i) => (
+                      <>
+                        <Grid.Col span={4}>
+                          <PokemonCards data={data} />
+                        </Grid.Col>
+                      </>
+                    ))}
+                  </Grid>
+                ) : null}
+                {newRoomData.playerTwo === user.email &&
+                newRoomData.playerTwoPokemons ? (
+                  <Grid>
+                    {newRoomData.playerTwoPokemons.map((data, i) => (
+                      <>
+                        <Grid.Col span={4}>
+                          <PokemonCards data={data} />
+                        </Grid.Col>
+                      </>
+                    ))}
+                  </Grid>
+                ) : null}
               </Grid.Col>
               <Grid.Col
                 sx={{
@@ -179,10 +252,35 @@ function Room({ roomName, roomData }) {
                 md={12}
                 lg={6}
               >
-                test test
+                {newRoomData.playerOne !== user.email &&
+                newRoomData.playerOnePokemons ? (
+                  <Grid>
+                    {newRoomData.playerOnePokemons.map((data, i) => (
+                      <>
+                        <Grid.Col span={4}>
+                          <PokemonCards data={data} />
+                        </Grid.Col>
+                      </>
+                    ))}
+                  </Grid>
+                ) : null}
+                {newRoomData.playerTwo !== user.email &&
+                newRoomData.playerTwoPokemons ? (
+                  <Grid>
+                    {newRoomData.playerTwoPokemons.map((data, i) => (
+                      <>
+                        <Grid.Col span={4}>
+                          <PokemonCards data={data} />
+                        </Grid.Col>
+                      </>
+                    ))}
+                  </Grid>
+                ) : null}
               </Grid.Col>
             </Grid>
-            {user && newRoomData.head == user.email ? (
+            {user &&
+            newRoomData.head == user.email &&
+            newRoomData.section === 0 ? (
               <Grid pt={20}>
                 <Grid.Col
                   md={12}
@@ -197,6 +295,13 @@ function Room({ roomName, roomData }) {
                     variant="filled"
                     color="dark"
                     size="xl"
+                    disabled={
+                      newRoomData &&
+                      newRoomData.playerOne &&
+                      newRoomData.playerTwo
+                        ? false
+                        : true
+                    }
                   >
                     START
                   </Button>
@@ -207,6 +312,8 @@ function Room({ roomName, roomData }) {
         ) : null}
         {opened ? (
           <PokemonChoose
+            setChoosedPokemons={setChoosedPokemons}
+            choosedPokemons={choosedPokemons}
             time={newRoomData.time}
             opened={opened}
             setOpened={setOpened}

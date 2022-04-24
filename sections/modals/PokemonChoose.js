@@ -1,12 +1,17 @@
 import { Modal } from "@mantine/core";
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { Grid } from "@mantine/core";
-import { Card, Image, Text } from "@mantine/core";
-const PokemonChoose = ({ opened, setOpened, time }) => {
+import { Card, Image, Text, Grid } from "@mantine/core";
+const PokemonChoose = ({
+  opened,
+  setOpened,
+  time,
+  setChoosedPokemons,
+  choosedPokemons,
+}) => {
   const [pokemons, setPokemons] = useState([]);
   const [pokemonsData, setPokemonsData] = useState([]);
-  const [choosedPokemons, setChoosedPokemons] = useState([]);
+
   function randomIntFromInterval(min, max) {
     // min and max included
     return Math.floor(Math.random() * (max - min + 1) + min);
@@ -66,9 +71,6 @@ const PokemonChoose = ({ opened, setOpened, time }) => {
     });
     setChoosedPokemons(pokemonData);
   };
-  useEffect(() => {
-    console.log(choosedPokemons);
-  }, [choosedPokemons]);
   return (
     <>
       <Modal
