@@ -16,9 +16,11 @@ function MyApp({ Component, pageProps }) {
     }
   }, [user]);
   return (
-    <AnimatePresence exitBeforeEnter>
-      <Component {...pageProps} />
-    </AnimatePresence>
+    <>
+      <AnimatePresence exitBeforeEnter>
+        <Component {...pageProps} />
+      </AnimatePresence>
+    </>
   );
 }
 

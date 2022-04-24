@@ -9,9 +9,15 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@emotion/react": "^11.9.0",
+    "@emotion/styled": "^11.8.1",
+    "@fortawesome/react-fontawesome": "^0.1.18",
     "@mantine/core": "^4.0.8",
     "@mantine/hooks": "^4.0.8",
     "@mantine/next": "^4.0.8",
+    "@styled-icons/bootstrap": "^10.34.0",
+    "@styled-icons/octicons": "^10.44.0",
+    "@styled-icons/remix-fill": "^10.18.0",
     "axios": "^0.26.1",
     "firebase": "^9.6.10",
     "framer-motion": "^6.2.8",
@@ -20,6 +26,7 @@
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "react-firebase-hooks": "^5.0.3",
+    "styled-components": "^5.3.5",
     "tabler-icons-react": "^1.41.0"
   },
   "devDependencies": {
