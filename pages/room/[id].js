@@ -58,6 +58,8 @@ function Room({ roomName, roomData }) {
   const [choosedPokemons, setChoosedPokemons] = useState([]);
   const [opened, setOpened] = useState(false);
   const [newRoomData, setNewRoomData] = useState([]);
+  const [selectedPokemonForRound, setSelectedPokemonForRound] = useState([]);
+  const [clickable, setClickable] = useState(false);
   if (typeof window !== "undefined") {
     window.addEventListener("beforeunload", async function (e) {
       e.preventDefault();
@@ -132,36 +134,71 @@ function Room({ roomName, roomData }) {
     if (newRoomData && newRoomData.time === 0 && newRoomData.section == 1) {
       const roomRef = db.collection("rooms").doc(roomData.roomName);
       if (newRoomData.playerOne === user.email) {
+        var insertData = new Array();
+        choosedPokemons.map((choosedPokemonData, i) => {
+          var data = {
+            id: choosedPokemonData.id,
+            sprite: choosedPokemonData.sprites.front_default,
+            name: choosedPokemonData.name,
+            stats: choosedPokemonData.stats,
+            type: choosedPokemonData.types[0].type.name,
+          };
+          insertData.push(data);
+        });
+        setOpened(false);
         const res = await roomRef.update({
-          playerOnePokemons: choosedPokemons,
+          playerOnePokemons: insertData,
           time: 20,
           section: 2,
           round: 1,
+          roundType: 0,
         });
-        setOpened(false);
       } else {
-        const res = await roomRef.update({
-          playerTwoPokemons: choosedPokemons,
-          time: 20,
-          section: 2,
-          round: 1,
+        var insertData = new Array();
+        choosedPokemons.map((choosedPokemonData, i) => {
+          var data = {
+            id: choosedPokemonData.id,
+            sprite: choosedPokemonData.sprites.front_default,
+            name: choosedPokemonData.name,
+            stats: choosedPokemonData.stats,
+            type: choosedPokemonData.types[0].type.name,
+          };
+          insertData.push(data);
         });
         setOpened(false);
+        const res = await roomRef.update({
+          playerTwoPokemons: insertData,
+        });
       }
     }
-    if (
-      newRoomData &&
-      newRoomData.section == 2 &&
-      newRoomData.time > 0 &&
-      newRoomData.head === user.email
-    ) {
-      await delay(1000);
+    if (newRoomData && newRoomData.section == 2 && newRoomData.time > 0) {
+      setClickable(true);
+      if (newRoomData.head === user.email) {
+        await delay(1000);
+        const roomRef = db.collection("rooms").doc(roomData.roomName);
+        const res = await roomRef.update({
+          time: newRoomData.time - 1,
+        });
+      }
+    }
+    if (newRoomData && newRoomData.section == 2 && newRoomData.time === 0) {
+      setClickable(false);
       const roomRef = db.collection("rooms").doc(roomData.roomName);
-      const res = await roomRef.update({
-        time: newRoomData.time - 1,
-      });
+      if (newRoomData.playerOne === user.email) {
+        const res = await roomRef.update({
+          playerOneSelectedPokemon: selectedPokemonForRound.id,
+        });
+      }
+      if (newRoomData.playerTwo === user.email) {
+        const res = await roomRef.update({
+          playerTwoSelectedPokemon: selectedPokemonForRound.id,
+        });
+      }
     }
   }, [newRoomData]);
+  const selectPokemonForRound = (data) => {
+    setSelectedPokemonForRound(data);
+  };
   return (
     <>
       <motion.div
@@ -172,7 +209,10 @@ function Room({ roomName, roomData }) {
         {newRoomData.roomName && user ? (
           <>
             <Grid pb={20}>
-              <Grid.Col sx={{ justifyContent: "flex-start" }} md={3}>
+              <Grid.Col
+                sx={{ display: "flex", justifyContent: "space-between" }}
+                md={12}
+              >
                 <Box
                   sx={(theme) => ({
                     border: "2px solid #fff",
@@ -184,10 +224,27 @@ function Room({ roomName, roomData }) {
                     backgroundColor: theme.colors.gray[1],
                   })}
                 >
-                  <Text>Players</Text>
-                  <Text>{newRoomData.playerOne}</Text>
-                  <Text>{newRoomData.playerTwo}</Text>
+                  <Text>{user.email}</Text>
                 </Box>
+                {newRoomData.playerOne && newRoomData.playerTwo ? (
+                  <Box
+                    sx={(theme) => ({
+                      border: "2px solid #fff",
+                      textAlign: "center",
+                      padding: theme.spacing.xl,
+                      borderRadius: theme.radius.md,
+                      cursor: "pointer",
+                      color: "#181818",
+                      backgroundColor: theme.colors.gray[1],
+                    })}
+                  >
+                    <Text>
+                      {newRoomData.playerOne !== user.email
+                        ? newRoomData.playerOne
+                        : newRoomData.playerTwo}
+                    </Text>
+                  </Box>
+                ) : null}
               </Grid.Col>
             </Grid>
             {newRoomData.section > 1 ? (
@@ -223,7 +280,22 @@ function Room({ roomName, roomData }) {
                     {newRoomData.playerOnePokemons.map((data, i) => (
                       <>
                         <Grid.Col span={4}>
-                          <PokemonCards data={data} />
+                          <PokemonCards
+                            selectedPokemonForRound={selectedPokemonForRound}
+                            selectPokemonForRound={selectPokemonForRound}
+                            user={true}
+                            data={data}
+                            isSelected={
+                              newRoomData &&
+                              newRoomData.section == 2 &&
+                              newRoomData.time === 0 &&
+                              selectedPokemonForRound &&
+                              selectedPokemonForRound.id === data.id
+                                ? true
+                                : false
+                            }
+                            clickable={clickable}
+                          />
                         </Grid.Col>
                       </>
                     ))}
@@ -235,7 +307,22 @@ function Room({ roomName, roomData }) {
                     {newRoomData.playerTwoPokemons.map((data, i) => (
                       <>
                         <Grid.Col span={4}>
-                          <PokemonCards data={data} />
+                          <PokemonCards
+                            selectedPokemonForRound={selectedPokemonForRound}
+                            selectPokemonForRound={selectPokemonForRound}
+                            user={true}
+                            data={data}
+                            isSelected={
+                              newRoomData &&
+                              newRoomData.section == 2 &&
+                              newRoomData.time === 0 &&
+                              selectedPokemonForRound &&
+                              selectedPokemonForRound.id === data.id
+                                ? true
+                                : false
+                            }
+                            clickable={clickable}
+                          />
                         </Grid.Col>
                       </>
                     ))}
@@ -258,7 +345,14 @@ function Room({ roomName, roomData }) {
                     {newRoomData.playerOnePokemons.map((data, i) => (
                       <>
                         <Grid.Col span={4}>
-                          <PokemonCards data={data} />
+                          <PokemonCards
+                            anotherPlayerSelectedPokemon={
+                              newRoomData.playerOneSelectedPokemon
+                                ? newRoomData.playerOneSelectedPokemon
+                                : null
+                            }
+                            data={data}
+                          />
                         </Grid.Col>
                       </>
                     ))}
@@ -270,7 +364,14 @@ function Room({ roomName, roomData }) {
                     {newRoomData.playerTwoPokemons.map((data, i) => (
                       <>
                         <Grid.Col span={4}>
-                          <PokemonCards data={data} />
+                          <PokemonCards
+                            anotherPlayerSelectedPokemon={
+                              newRoomData.playerTwoSelectedPokemon
+                                ? newRoomData.playerTwoSelectedPokemon
+                                : null
+                            }
+                            data={data}
+                          />
                         </Grid.Col>
                       </>
                     ))}
