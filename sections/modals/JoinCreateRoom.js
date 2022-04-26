@@ -14,7 +14,9 @@ function JoinCreateRoom({ opened, setOpened }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [alert, setAlert] = useState(false);
+  const [loading, setLoading] = useState(false);
   const createRoom = async () => {
+    setLoading(true);
     let room = randomstring.generate(7);
     const roomsRef = db.collection("rooms");
     const roomCheck = await roomsRef.where("roomName", "==", room).get();
@@ -116,6 +118,7 @@ function JoinCreateRoom({ opened, setOpened }) {
             sx={{ width: "100%" }}
             radius="xs"
             size="md"
+            loading={loading}
           >
             Create Room
           </Button>

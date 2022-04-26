@@ -16,6 +16,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { useRouter } from "next/router";
 import PokemonChoose from "../../sections/modals/PokemonChoose";
 import PokemonCards from "../../sections/game-screen/PokemonCards";
+import Dice from "react-dice-roll";
 export async function getServerSideProps(context) {
   const roomsRef = db.collection("rooms");
   const roomName = context.query.id;
@@ -60,6 +61,8 @@ function Room({ roomName, roomData }) {
   const [newRoomData, setNewRoomData] = useState([]);
   const [selectedPokemonForRound, setSelectedPokemonForRound] = useState([]);
   const [clickable, setClickable] = useState(false);
+  const [diceValue, setDiceValue] = useState(0);
+  const [canDice, setCanDice] = useState(true);
   if (typeof window !== "undefined") {
     window.addEventListener("beforeunload", async function (e) {
       e.preventDefault();
@@ -171,7 +174,12 @@ function Room({ roomName, roomData }) {
         });
       }
     }
-    if (newRoomData && newRoomData.section == 2 && newRoomData.time > 0) {
+    if (
+      newRoomData &&
+      newRoomData.section == 2 &&
+      newRoomData.time > 0 &&
+      newRoomData.roundType === 0
+    ) {
       setClickable(true);
       if (newRoomData.head === user.email) {
         await delay(1000);
@@ -181,12 +189,19 @@ function Room({ roomName, roomData }) {
         });
       }
     }
-    if (newRoomData && newRoomData.section == 2 && newRoomData.time === 0) {
+    if (
+      newRoomData &&
+      newRoomData.section == 2 &&
+      newRoomData.time === 0 &&
+      newRoomData.roundType === 0
+    ) {
       setClickable(false);
       const roomRef = db.collection("rooms").doc(roomData.roomName);
       if (newRoomData.playerOne === user.email) {
         const res = await roomRef.update({
           playerOneSelectedPokemon: selectedPokemonForRound.id,
+          roundType: 1,
+          time: 10,
         });
       }
       if (newRoomData.playerTwo === user.email) {
@@ -195,10 +210,55 @@ function Room({ roomName, roomData }) {
         });
       }
     }
+    if (
+      newRoomData &&
+      newRoomData.section == 2 &&
+      newRoomData.time > 0 &&
+      newRoomData.roundType === 1
+    ) {
+      if (newRoomData.head === user.email) {
+        await delay(1000);
+        const roomRef = db.collection("rooms").doc(roomData.roomName);
+        const res = await roomRef.update({
+          time: newRoomData.time - 1,
+        });
+      }
+    }
   }, [newRoomData]);
   const selectPokemonForRound = (data) => {
     setSelectedPokemonForRound(data);
   };
+  const dice = async (value) => {
+    setDiceValue(value);
+    const roomRef = db.collection("rooms").doc(roomData.roomName);
+    setCanDice(false);
+    if (newRoomData.playerOne === user.email) {
+      const res = await roomRef.update({
+        playerOneDiceValue: value,
+      });
+    } else {
+      const res = await roomRef.update({
+        playerTwoDiceValue: value,
+      });
+    }
+  };
+  useEffect(() => {
+    if (newRoomData && user) {
+      if (newRoomData.playerOne === user.email) {
+        if (newRoomData.playerOneDiceValue) {
+          setCanDice(false);
+        } else {
+          setCanDice(true);
+        }
+      } else {
+        if (newRoomData.playerTwoDiceValue) {
+          setCanDice(false);
+        } else {
+          setCanDice(true);
+        }
+      }
+    }
+  }, [newRoomData]);
   return (
     <>
       <motion.div
@@ -286,11 +346,16 @@ function Room({ roomName, roomData }) {
                             user={true}
                             data={data}
                             isSelected={
-                              newRoomData &&
-                              newRoomData.section == 2 &&
-                              newRoomData.time === 0 &&
-                              selectedPokemonForRound &&
-                              selectedPokemonForRound.id === data.id
+                              (newRoomData &&
+                                newRoomData.section == 2 &&
+                                newRoomData.time > 0 &&
+                                selectedPokemonForRound &&
+                                selectedPokemonForRound.id === data.id) ||
+                              (newRoomData &&
+                                newRoomData.section == 2 &&
+                                selectedPokemonForRound &&
+                                selectedPokemonForRound.id === data.id &&
+                                newRoomData.roundType === 1)
                                 ? true
                                 : false
                             }
@@ -313,11 +378,16 @@ function Room({ roomName, roomData }) {
                             user={true}
                             data={data}
                             isSelected={
-                              newRoomData &&
-                              newRoomData.section == 2 &&
-                              newRoomData.time === 0 &&
-                              selectedPokemonForRound &&
-                              selectedPokemonForRound.id === data.id
+                              (newRoomData &&
+                                newRoomData.section == 2 &&
+                                newRoomData.time > 0 &&
+                                selectedPokemonForRound &&
+                                selectedPokemonForRound.id === data.id) ||
+                              (newRoomData &&
+                                newRoomData.section == 2 &&
+                                selectedPokemonForRound &&
+                                selectedPokemonForRound.id === data.id &&
+                                newRoomData.roundType === 1)
                                 ? true
                                 : false
                             }
@@ -379,6 +449,69 @@ function Room({ roomName, roomData }) {
                 ) : null}
               </Grid.Col>
             </Grid>
+            {newRoomData &&
+            newRoomData.roundType === 1 &&
+            newRoomData.section === 2 ? (
+              <Grid sx={{ marginTop: 120 }}>
+                <Grid.Col
+                  sx={{ display: "flex", justifyContent: "flex-end" }}
+                  sm={6}
+                >
+                  <motion.div
+                    animate={
+                      newRoomData.time === 0
+                        ? { x: -300, opacity: 1 }
+                        : { y: 0, opacity: 1 }
+                    }
+                    transition={{
+                      delay: 0.3,
+                      x: { type: "spring", stiffness: 100 },
+                      default: { duration: 1 },
+                    }}
+                  >
+                    <Dice
+                      onRoll={(value) => dice(value)}
+                      disabled={!canDice}
+                      size={100}
+                    />
+                  </motion.div>
+                </Grid.Col>
+                {newRoomData &&
+                newRoomData.roundType === 1 &&
+                newRoomData.time === 0 ? (
+                  <Grid.Col
+                    sx={{ display: "flex", justifyContent: "flex-start" }}
+                    sm={6}
+                  >
+                    {newRoomData.playerOneDiceValue ||
+                    newRoomData.playerTwoDiceValue ? (
+                      <motion.div
+                        animate={
+                          newRoomData.time === 0
+                            ? { x: 300, opacity: 1 }
+                            : { y: 0, opacity: 1 }
+                        }
+                        transition={{
+                          delay: 0.3,
+                          x: { type: "spring", stiffness: 100 },
+                          default: { duration: 1 },
+                        }}
+                      >
+                        <Dice
+                          disabled={true}
+                          size={100}
+                          defaultValue={
+                            newRoomData.playerOne === user.email
+                              ? Number(newRoomData.playerTwoDiceValue)
+                              : Number(newRoomData.playerOneDiceValue)
+                          }
+                        />
+                      </motion.div>
+                    ) : null}
+                  </Grid.Col>
+                ) : null}
+              </Grid>
+            ) : null}
             {user &&
             newRoomData.head == user.email &&
             newRoomData.section === 0 ? (
