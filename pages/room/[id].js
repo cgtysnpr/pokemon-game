@@ -15,8 +15,11 @@ import { useCollection } from "react-firebase-hooks/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useRouter } from "next/router";
 import PokemonChoose from "../../sections/modals/PokemonChoose";
+import styled from "styled-components";
 import PokemonCards from "../../sections/game-screen/PokemonCards";
 import Dice from "react-dice-roll";
+import { Sword } from "@styled-icons/remix-fill";
+import { ShieldFill } from "@styled-icons/bootstrap";
 export async function getServerSideProps(context) {
   const roomsRef = db.collection("rooms");
   const roomName = context.query.id;
@@ -182,6 +185,22 @@ function Room({ roomName, roomData }) {
     ) {
       setClickable(true);
       if (newRoomData.head === user.email) {
+        if (!newRoomData.attacker && !newRoomData.defender) {
+          let attacker = Math.floor(Math.random() * 2 + 1);
+          if (attacker === 1) {
+            const roomRef = db.collection("rooms").doc(roomData.roomName);
+            const res = await roomRef.update({
+              attacker: newRoomData.playerOne,
+              defender: newRoomData.playerTwo,
+            });
+          } else {
+            const roomRef = db.collection("rooms").doc(roomData.roomName);
+            const res = await roomRef.update({
+              attacker: newRoomData.playerTwo,
+              defender: newRoomData.playerOne,
+            });
+          }
+        }
         await delay(1000);
         const roomRef = db.collection("rooms").doc(roomData.roomName);
         const res = await roomRef.update({
@@ -331,7 +350,78 @@ function Room({ roomName, roomData }) {
                 />
               </>
             ) : null}
-
+            <Grid>
+              <Grid.Col
+                sx={{ display: "flex", justifyContent: "center" }}
+                sm={6}
+              >
+                {newRoomData && newRoomData.attacker === user.email ? (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      backgroundColor: "#fff",
+                      padding: 5,
+                      borderRadius: "8px",
+                      alignItems: "center",
+                    }}
+                  >
+                    <IconSword />
+                    <Text size="xl">{"Attacker"}</Text>
+                  </Box>
+                ) : null}
+                {newRoomData && newRoomData.defender === user.email ? (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      backgroundColor: "#fff",
+                      padding: 5,
+                      borderRadius: "8px",
+                      alignItems: "center",
+                    }}
+                  >
+                    <IconShield />
+                    <Text size="xl">{"Defender"}</Text>
+                  </Box>
+                ) : null}
+              </Grid.Col>
+              <Grid.Col
+                sx={{ display: "flex", justifyContent: "center" }}
+                sm={6}
+              >
+                {newRoomData &&
+                newRoomData.attacker &&
+                newRoomData.attacker !== user.email ? (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      backgroundColor: "#fff",
+                      padding: 5,
+                      borderRadius: "8px",
+                      alignItems: "center",
+                    }}
+                  >
+                    <IconSword />
+                    <Text size="xl">{"Attacker"}</Text>
+                  </Box>
+                ) : null}
+                {newRoomData &&
+                newRoomData.attacker &&
+                newRoomData.defender !== user.email ? (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      backgroundColor: "#fff",
+                      padding: 5,
+                      borderRadius: "8px",
+                      alignItems: "center",
+                    }}
+                  >
+                    <IconShield />
+                    <Text size="xl">{"Defender"}</Text>
+                  </Box>
+                ) : null}
+              </Grid.Col>
+            </Grid>
             <Grid>
               <Grid.Col className={classes.playerSpaceOne} md={12} lg={6}>
                 {newRoomData.playerOne === user.email &&
@@ -558,3 +648,13 @@ function Room({ roomName, roomData }) {
   );
 }
 export default Room;
+const IconSword = styled(Sword)`
+  color: #228be6;
+  width: 50px;
+  height: 50px;
+`;
+const IconShield = styled(ShieldFill)`
+  color: #fab005;
+  width: 50px;
+  height: 50px;
+`;
