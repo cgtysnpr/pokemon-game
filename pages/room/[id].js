@@ -37,9 +37,6 @@ export async function getServerSideProps(context) {
 
 const useStyles = createStyles((theme) => ({
   backGround: {
-    backgroundSize: "cover",
-    backgroundImage:
-      "url(https://pokemon-game-smoky.vercel.app/images/room-background.jpg)",
     padding: theme.spacing.xl * 3,
     height: "100vh",
     width: "100vw",
@@ -278,6 +275,10 @@ function Room({ roomName, roomData }) {
       }
     }
   }, [newRoomData]);
+  useEffect(() => {
+    document.getElementsByTagName("body")[0].style =
+      "background-size: cover;background-image:url(https://pokemon-game-smoky.vercel.app/images/room-background.jpg);";
+  }, []);
   return (
     <>
       <motion.div
